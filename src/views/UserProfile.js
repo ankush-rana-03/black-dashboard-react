@@ -15,7 +15,7 @@
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 */
-import React from "react";
+import React, { useState } from "react";
 
 // reactstrap components
 import {
@@ -29,13 +29,155 @@ import {
   Form,
   Input,
   Row,
-  Col
+  Col,
+  Alert,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter
 } from "reactstrap";
 
 function UserProfile() {
+  // State for reset password functionality
+  const [resetPasswordData, setResetPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [alert, setAlert] = useState({ show: false, message: '', type: '' });
+  const [errors, setErrors] = useState({});
+
+  // Handle input changes for reset password form
+  const handleResetPasswordChange = (e) => {
+    const { name, value } = e.target;
+    setResetPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Validate password reset form
+  const validatePasswordForm = () => {
+    const newErrors = {};
+    
+    if (!resetPasswordData.currentPassword) {
+      newErrors.currentPassword = 'Current password is required';
+    }
+    
+    if (!resetPasswordData.newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (resetPasswordData.newPassword.length < 8) {
+      newErrors.newPassword = 'Password must be at least 8 characters long';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(resetPasswordData.newPassword)) {
+      newErrors.newPassword = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+    }
+    
+    if (!resetPasswordData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your new password';
+    } else if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle password reset submission
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    
+    if (!validatePasswordForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Simulate API call for password reset
+      // In a real application, you would make an actual API call here
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+      
+      // Simulate successful response
+      const response = { success: true };
+      
+      if (response.success) {
+        setAlert({
+          show: true,
+          message: 'Password updated successfully!',
+          type: 'success'
+        });
+        
+        // Reset form and close modal
+        setResetPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setShowResetPasswordModal(false);
+        
+        // Hide alert after 3 seconds
+        setTimeout(() => {
+          setAlert({ show: false, message: '', type: '' });
+        }, 3000);
+        
+      } else {
+        throw new Error('Failed to update password');
+      }
+      
+    } catch (error) {
+      setAlert({
+        show: true,
+        message: error.message || 'Failed to update password. Please try again.',
+        type: 'danger'
+      });
+      
+      // Hide alert after 5 seconds
+      setTimeout(() => {
+        setAlert({ show: false, message: '', type: '' });
+      }, 5000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Toggle reset password modal
+  const toggleResetPasswordModal = () => {
+    setShowResetPasswordModal(!showResetPasswordModal);
+    if (!showResetPasswordModal) {
+      // Reset form when opening modal
+      setResetPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setErrors({});
+      setAlert({ show: false, message: '', type: '' });
+    }
+  };
+
   return (
     <>
       <div className="content">
+        {/* Alert for password reset feedback */}
+        {alert.show && (
+          <Row>
+            <Col md="12">
+              <Alert color={alert.type} className="alert-dismissible">
+                {alert.message}
+              </Alert>
+            </Col>
+          </Row>
+        )}
+        
         <Row>
           <Col md="8">
             <Card>
@@ -178,12 +320,10 @@ function UserProfile() {
                     />
                     <h5 className="title">Mike Andrew</h5>
                   </a>
-                  <p className="description">Ceo/Co-Founder</p>
+                  <p className="description">Teacher</p>
                 </div>
                 <div className="card-description">
-                  Do not be scared of the truth because we need to restart the
-                  human foundation in truth And I love you like Kanye loves
-                  Kanye I love Rick Owens’ bed design but the back is...
+                  Dedicated educator with passion for teaching and helping students achieve their goals. Always striving for excellence in education.
                 </div>
               </CardBody>
               <CardFooter>
@@ -198,10 +338,107 @@ function UserProfile() {
                     <i className="fab fa-google-plus" />
                   </Button>
                 </div>
+                <hr />
+                <div className="button-container">
+                  <Button 
+                    className="btn-fill" 
+                    color="warning" 
+                    size="sm"
+                    onClick={toggleResetPasswordModal}
+                  >
+                    <i className="tim-icons icon-lock-circle" /> Reset Password
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           </Col>
         </Row>
+
+        {/* Reset Password Modal */}
+        <Modal isOpen={showResetPasswordModal} toggle={toggleResetPasswordModal}>
+          <ModalHeader toggle={toggleResetPasswordModal}>
+            Reset Password
+          </ModalHeader>
+          <Form onSubmit={handleResetPassword}>
+            <ModalBody>
+              <FormGroup>
+                <label>Current Password *</label>
+                <Input
+                  type="password"
+                  name="currentPassword"
+                  value={resetPasswordData.currentPassword}
+                  onChange={handleResetPasswordChange}
+                  placeholder="Enter your current password"
+                  invalid={!!errors.currentPassword}
+                />
+                {errors.currentPassword && (
+                  <div className="invalid-feedback d-block">
+                    {errors.currentPassword}
+                  </div>
+                )}
+              </FormGroup>
+              
+              <FormGroup>
+                <label>New Password *</label>
+                <Input
+                  type="password"
+                  name="newPassword"
+                  value={resetPasswordData.newPassword}
+                  onChange={handleResetPasswordChange}
+                  placeholder="Enter your new password"
+                  invalid={!!errors.newPassword}
+                />
+                {errors.newPassword && (
+                  <div className="invalid-feedback d-block">
+                    {errors.newPassword}
+                  </div>
+                )}
+                <small className="form-text text-muted">
+                  Password must be at least 8 characters long and contain uppercase, lowercase, and numbers.
+                </small>
+              </FormGroup>
+              
+              <FormGroup>
+                <label>Confirm New Password *</label>
+                <Input
+                  type="password"
+                  name="confirmPassword"
+                  value={resetPasswordData.confirmPassword}
+                  onChange={handleResetPasswordChange}
+                  placeholder="Confirm your new password"
+                  invalid={!!errors.confirmPassword}
+                />
+                {errors.confirmPassword && (
+                  <div className="invalid-feedback d-block">
+                    {errors.confirmPassword}
+                  </div>
+                )}
+              </FormGroup>
+            </ModalBody>
+            <ModalFooter>
+              <Button 
+                color="secondary" 
+                onClick={toggleResetPasswordModal}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                color="primary" 
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <i className="fa fa-spinner fa-spin" /> Updating...
+                  </>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
+            </ModalFooter>
+          </Form>
+        </Modal>
       </div>
     </>
   );
